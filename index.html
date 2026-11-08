@@ -48,6 +48,8 @@ h1{font-size:20px;font-weight:600;margin:4px 0 2px}
 .m p{margin:0;font-size:12px;color:var(--ac)}
 .m div{font-size:20px;font-weight:600;color:var(--ac)}
 .legend{font-size:12px;color:var(--tx2);margin-top:10px;line-height:1.7}
+.alert{background:var(--rbg);color:var(--rd);border-radius:var(--r);padding:10px 12px;font-size:13px;margin-top:10px;line-height:1.5}
+.alert.y{background:var(--ybg);color:var(--y)}
 .note{font-size:13px;color:var(--tx2);margin-top:10px}
 </style>
 </head>
@@ -71,22 +73,25 @@ h1{font-size:20px;font-weight:600;margin:4px 0 2px}
 <div class="ctl"><span>Ciclo útil</span><select id="dc"><option value="1">Continuo 100 %</option><option value="0.5">Pulsado 50 %</option><option value="0.3">Pulsado 30 %</option></select></div>
 <div class="ctl"><span>Retirada (cm/s)</span><input type="number" id="vel" min="0.1" step="0.1" value="1"></div>
 <div class="ctl"><span>Separación vectores (cm)</span><input type="number" id="sep" min="0.2" step="0.1" value="1"></div>
+<div class="ctl" id="jmlRow"><span>Dosis por volumen (J/mL)</span><input type="number" id="jml" min="10" step="10" value="100"></div>
+<p class="hint" id="jmlHint">Solo lipólisis y opcional: si capturas el grosor de grasa en una zona, la energía se calcula por volumen (área × grosor × J/mL; referencia 100 J/mL, Leclère/Mordon). Sin grosor se calcula por cm² de piel.</p>
 <p class="hint" id="preal"></p>
 </div>
 
 <div class="card">
 <p class="hint" style="margin:0 0 10px">Área en cm² o como largo×ancho (ej. 10x5). Con L×A se proponen solos los vectores (ancho ÷ separación) y la longitud (L); puedes cambiarlos. En "J del equipo" anota la energía que marca el láser al terminar (o el acumulado de lipólisis + endolifting en la misma piel) para verificar el límite real.</p>
 <div id="zones"></div>
+<div id="alerts"></div>
 <div class="tot"><div class="m"><p>Energía planeada</p><div id="tJ">0 J</div></div><div class="m"><p>Tiempo láser efectivo</p><div id="tT">—</div></div></div>
 <p class="hint" style="margin-top:8px">Tiempo de disparo puro, sin pausas entre vectores.</p>
 <div class="legend">
-<b>Semáforo de seguridad</b> (límite del autor de la tabla Liplaser: 3–5 kJ por 100 cm² de piel = 30–50 J/cm²):<br>
-verde &lt; 3 kJ/100 cm² · amarillo 3–5 kJ/100 cm² · rojo &gt; 5 kJ/100 cm².<br>
-Se evalúa con la energía del equipo si la capturas; si no, con la planeada.
+<b>Semáforo de seguridad por cm² de piel</b> (se evalúa con la energía del equipo si la capturas; si no, con la planeada):<br>
+<b>980 nm</b> — verde &lt; 3 · amarillo 3–5 · rojo &gt; 5 kJ/100 cm² (límite del autor de la tabla Liplaser).<br>
+<b>1470 nm</b> — verde &lt; 2.4 · amarillo 2.4–3 · rojo &gt; 3 kJ/100 cm² (Lim et al. 2011, 1444 nm en modelo porcino: &gt; 3 kJ/100 cm² produjo inflamación persistente y cicatrización de la grasa).
 </div>
 </div>
 
-<p class="note">Parámetros según el autor de la tabla Liplaser: lipólisis 30–50 J/cm²; endolifting 5–10 J/cm² a 1–2 W con ciclo al 50 %; límite de seguridad 3–5 kJ por 100 cm² de piel. La tabla no distingue entre 980 y 1470 nm, así que se aplican los mismos rangos a ambas. La potencia para lipólisis no viene en la tabla: captura la de tu protocolo.</p>
+<p class="note">Parámetros: tabla Liplaser (lipólisis 30–50 J/cm²; endolifting 5–10 J/cm² a 1–2 W al 50 %; límite 3–5 kJ/100 cm² de piel). Límite 1470 nm: Lim SD et al. Histol Histopathol 2011;26:1375-82 (doi:10.14670/HH-26.1375). Dosis por volumen 100 J/mL: Leclère FM et al. Lasers Med Sci 2015;30:1053-9 (doi:10.1007/s10103-014-1705-2). La potencia para lipólisis no viene en la tabla: captura la de tu protocolo.</p>
 </main>
 
 <script>
@@ -107,10 +112,12 @@ function load(){
  seg("segReg","reg");seg("segMode","mode");seg("segWl","wl");
  const m=MODE[S.mode],st=ST[S.mode]||{},r=$("jcm");
  r.min=m.min;r.max=m.max;r.value=st.j||m.def;$("w").value=st.w!==undefined?st.w:m.w;$("dc").value=st.dc||m.dc;
+ $("jmlRow").style.display=$("jmlHint").style.display=S.mode==="lipo"?"":"none";
  $("rng").textContent=S.mode==="lipo"?"Rango del autor: 30–50 J/cm²":"Rango del autor: 5–10 J/cm², 1–2 W al 50 %";
  $("zones").innerHTML=ZONES[S.reg].map((z,i)=>{const k=S.reg+i,d=IN[k]||{};return`<div class="zone"><div class="zh"><span class="dot" id="d${i}"></span>${z}</div>
  <div class="zi"><div><label>cm² o L×A</label><input inputmode="decimal" data-k="${k}" data-f="a" placeholder="0" value="${d.a||""}"></div>
  <div><label>J del equipo (opcional)</label><input type="number" min="0" step="1" data-k="${k}" data-f="e" placeholder="—" value="${d.e||""}"></div>
+ ${S.mode==="lipo"?`<div style="grid-column:1/-1"><label>Grosor de grasa por eco (mm, opcional)</label><input type="number" min="0" step="0.5" data-k="${k}" data-f="g" placeholder="Sin dato: se calcula por cm² de piel" value="${d.g||""}"></div>`:""}
  <div><label>Vectores</label><input type="number" min="1" step="1" data-k="${k}" data-f="v" placeholder="auto" value="${d.v||""}"></div>
  <div><label>Long. vector (cm)</label><input type="number" min="0.5" step="0.5" data-k="${k}" data-f="l" placeholder="auto" value="${d.l||""}"></div></div>
  <div class="zo" id="o${i}"></div></div>`}).join("");
@@ -121,26 +128,30 @@ function calc(){
  const j=+$("jcm").value,w=+$("w").value||0,dc=+$("dc").value,pr=w*dc,vel=+$("vel").value||0,sep=+$("sep").value||1;
  $("jcmO").textContent=j;
  $("preal").textContent=pr>0?`Potencia real en tejido: ${n1(pr)} W`:"Captura la potencia para calcular tiempos y pases.";
- let TJ=0,TT=0;
+ let TJ=0,TT=0;const AL=[];
  ZONES[S.reg].forEach((z,i)=>{
   const k=S.reg+i,d=IN[k]||{},o=$("o"+i),dot=$("d"+i),pa=parseLA(d.a);
   dot.className="dot";
   if(!pa.area){o.innerHTML="";return}
-  const E=pa.area*j,T=pr>0?E/pr:0;TJ+=E;TT+=T;
-  const real=+d.e||0,ev=real||E,kj=ev/pa.area/10,c=kj>5?"r":kj>=3?"y":"g";
-  const lim=pa.area*50;
+  const g=S.mode==="lipo"?(+d.g||0):0,jml=+$("jml").value||100,vol=g?pa.area*g/10:0;
+  const E=vol?vol*jml:pa.area*j,T=pr>0?E/pr:0;TJ+=E;TT+=T;
+  const hi=S.wl==="1470"?3:5,lo=S.wl==="1470"?2.4:3;
+  const real=+d.e||0,ev=real||E,kj=ev/pa.area/10,c=kj>hi?"r":kj>=lo?"y":"g";
+  const lim=pa.area*hi*10;
+  if(c!=="g")AL.push({c,z:ZONES[S.reg][i],kj,hi,ex:Math.round(ev-lim),src:real?"del equipo":"planeada"});
   dot.className="dot "+c;
   let nv=+d.v||0,L=+d.l||0,auto=[];
   if(!nv){nv=pa.A?Math.max(1,Math.round(pa.A/sep)):Math.max(1,Math.round(Math.sqrt(pa.area)/sep));auto.push("vectores")}
   if(!L){L=pa.L||Math.round(Math.sqrt(pa.area)*10)/10;auto.push("longitud")}
   const Tv=T/nv,tPase=vel>0?L/vel:0,pases=tPase>0?Tv/tPase:0;
-  o.innerHTML=`Planeado <b>${Math.round(E).toLocaleString("es-MX")} J</b>${pr>0?" · "+fmt(T):""} · tope seguro ${Math.round(lim).toLocaleString("es-MX")} J<br>
+  o.innerHTML=`${vol?`Por volumen: ${n1(vol)} mL × ${jml} J/mL · `:""}Planeado <b>${Math.round(E).toLocaleString("es-MX")} J</b>${pr>0?" · "+fmt(T):""} · tope seguro ${Math.round(lim).toLocaleString("es-MX")} J<br>
   <span class="tag ${c}">${n1(kj)} kJ/100 cm²${real?" (equipo)":" (planeado)"}</span>${real>lim?`<span class="tag r">Excede por ${Math.round(real-lim).toLocaleString("es-MX")} J</span>`:""}<br>
   ${nv} vectores × ${n1(L)} cm · ${n1(E/nv)} J por vector${pr>0?` · ${fmt(Tv)} por vector · <b>${n1(pases)} pases/vector</b>`:""}${auto.length?` <span style="color:var(--tx3)">(auto: ${auto.join(" y ")})</span>`:""}`;
  });
+ $("alerts").innerHTML=AL.map(a=>a.c==="r"?`<div class="alert"><b>Advertencia: ${a.z}</b> — energía ${a.src} de ${n1(a.kj)} kJ/100 cm², excede el límite de ${a.hi} kJ/100 cm² para ${S.wl} nm por ${a.ex.toLocaleString("es-MX")} J. Riesgo de quemadura, necrosis grasa y fibrosis. Reduce la dosis o no continúes en esta zona.</div>`:`<div class="alert y"><b>Precaución: ${a.z}</b> — ${n1(a.kj)} kJ/100 cm², cerca del límite de ${a.hi} kJ/100 cm² (${S.wl} nm). Vigila temperatura cutánea.</div>`).join("");
  $("tJ").textContent=Math.round(TJ).toLocaleString("es-MX")+" J";$("tT").textContent=pr>0?fmt(TT):"—";
 }
-["jcm","w","vel","sep"].forEach(id=>$(id).addEventListener("input",calc));$("dc").addEventListener("change",calc);
+["jcm","w","vel","sep","jml"].forEach(id=>$(id).addEventListener("input",calc));$("dc").addEventListener("change",calc);
 load();
 if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>r.update()).catch(()=>{});let rl=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(!rl){rl=true;location.reload()}})}
 </script>
