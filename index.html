@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0f6e56">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="Dosis Láser">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icon-192.png">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<title>Calculadora de dosis láser diodo</title>
+<style>
+:root{--bg:#f7f6f2;--card:#fff;--tx:#1d1d1b;--tx2:#5f5e5a;--tx3:#8a8983;--bd:#e3e1da;--ac:#0f6e56;--acbg:#e1f5ee;--g:#3b8a2a;--gbg:#eaf3de;--y:#a8700a;--ybg:#faeeda;--rd:#b42d2d;--rbg:#fcebeb;--r:10px}
+@media (prefers-color-scheme:dark){:root{--bg:#161614;--card:#21211f;--tx:#f1efe8;--tx2:#b4b2a9;--tx3:#888780;--bd:#363633;--ac:#5dcaa5;--acbg:#0b3a2f;--g:#97c459;--gbg:#1f3310;--y:#fac775;--ybg:#3a2a10;--rd:#f09595;--rbg:#4a1717}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif}
+main{max-width:640px;margin:0 auto;padding:calc(16px + env(safe-area-inset-top)) calc(14px + env(safe-area-inset-right)) calc(40px + env(safe-area-inset-bottom)) calc(14px + env(safe-area-inset-left))}
+h1{font-size:20px;font-weight:600;margin:4px 0 2px}
+.sub{color:var(--tx2);font-size:13px;margin:0 0 12px}
+.seg{display:flex;background:var(--card);border:1px solid var(--bd);border-radius:var(--r);padding:3px;gap:3px;margin-bottom:8px}
+.seg button{flex:1;border:0;background:transparent;color:var(--tx2);padding:9px 4px;border-radius:7px;font:inherit;font-size:14px;cursor:pointer}
+.seg button.on{background:var(--acbg);color:var(--ac);font-weight:600}
+.lbl{font-size:12px;color:var(--tx3);margin:10px 0 4px;text-transform:uppercase;letter-spacing:.04em}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:12px;padding:12px 14px;margin-top:12px}
+.ctl{display:flex;align-items:center;gap:10px;margin:8px 0;font-size:14px}
+.ctl>span:first-child{color:var(--tx2);min-width:118px}
+.ctl input[type=range]{flex:1;accent-color:var(--ac)}
+.ctl input[type=number],.ctl select{flex:1;min-width:0;height:36px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);padding:0 8px;font:inherit}
+.val{min-width:46px;text-align:right;font-weight:600}
+.hint{font-size:12px;color:var(--tx3);margin:2px 0 0}
+.zone{border-top:1px solid var(--bd);padding:10px 0}
+.zone:first-child{border-top:0;padding-top:0}
+.zh{display:flex;align-items:center;gap:8px;font-size:14px;font-weight:600;margin-bottom:6px}
+.dot{width:12px;height:12px;border-radius:50%;background:var(--bd);flex:none}
+.dot.g{background:var(--g)}.dot.y{background:var(--y)}.dot.r{background:var(--rd)}
+.zi{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px}
+.zi label{font-size:11px;color:var(--tx3);display:block;margin-bottom:2px}
+.zi input{width:100%;height:34px;border:1px solid var(--bd);border-radius:8px;background:var(--bg);color:var(--tx);padding:0 6px;font:inherit;text-align:center}
+.zo{font-size:13px;color:var(--tx2);margin-top:6px;line-height:1.6}
+.zo b{color:var(--tx);font-weight:600}
+.tag{display:inline-block;font-size:12px;padding:1px 8px;border-radius:6px;margin:2px 4px 0 0}
+.tag.g{background:var(--gbg);color:var(--g)}.tag.y{background:var(--ybg);color:var(--y)}.tag.r{background:var(--rbg);color:var(--rd)}
+.tot{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:12px}
+.m{background:var(--acbg);border-radius:var(--r);padding:10px 12px}
+.m p{margin:0;font-size:12px;color:var(--ac)}
+.m div{font-size:20px;font-weight:600;color:var(--ac)}
+.legend{font-size:12px;color:var(--tx2);margin-top:10px;line-height:1.7}
+.note{font-size:13px;color:var(--tx2);margin-top:10px}
+</style>
+</head>
+<body>
+<main>
+<h1>Dosis láser diodo</h1>
+<p class="sub">E = cm² × J/cm² · T = E ÷ P real · pases por vector = (T ÷ vectores) ÷ (longitud ÷ velocidad)</p>
+
+<div class="lbl">Región</div>
+<div class="seg" id="segReg"><button data-v="cara">Cara</button><button data-v="corp">Corporal</button><button data-v="pubis">Pubis y labios mayores</button></div>
+<div class="lbl">Modo</div>
+<div class="seg" id="segMode"><button data-v="lipo">Lipólisis</button><button data-v="endo">Endolifting</button></div>
+<div class="lbl">Longitud de onda</div>
+<div class="seg" id="segWl"><button data-v="980">980 nm</button><button data-v="1470">1470 nm</button></div>
+
+<div class="card">
+<div class="ctl"><span>J/cm²</span><input type="range" id="jcm" step="1"><span class="val" id="jcmO"></span></div>
+<p class="hint" id="rng"></p>
+<div class="ctl"><span>Potencia (W)</span><input type="number" id="w" min="0.5" step="0.5" placeholder="Captura tu potencia"></div>
+<div class="ctl"><span>Ciclo útil</span><select id="dc"><option value="1">Continuo 100 %</option><option value="0.5">Pulsado 50 %</option><option value="0.3">Pulsado 30 %</option></select></div>
+<div class="ctl"><span>Retirada (cm/s)</span><input type="number" id="vel" min="0.1" step="0.1" value="1"></div>
+<div class="ctl"><span>Separación vectores (cm)</span><input type="number" id="sep" min="0.2" step="0.1" value="1"></div>
+<p class="hint" id="preal"></p>
+</div>
+
+<div class="card">
+<p class="hint" style="margin:0 0 10px">Área en cm² o como largo×ancho (ej. 10x5). Con L×A se proponen solos los vectores (ancho ÷ separación) y la longitud (L); puedes cambiarlos. En "J del equipo" anota la energía que marca el láser al terminar (o el acumulado de lipólisis + endolifting en la misma piel) para verificar el límite real.</p>
+<div id="zones"></div>
+<div class="tot"><div class="m"><p>Energía planeada</p><div id="tJ">0 J</div></div><div class="m"><p>Tiempo láser efectivo</p><div id="tT">—</div></div></div>
+<p class="hint" style="margin-top:8px">Tiempo de disparo puro, sin pausas entre vectores.</p>
+<div class="legend">
+<b>Semáforo de seguridad</b> (límite del autor de la tabla Liplaser: 3–5 kJ por 100 cm² de piel = 30–50 J/cm²):<br>
+verde &lt; 3 kJ/100 cm² · amarillo 3–5 kJ/100 cm² · rojo &gt; 5 kJ/100 cm².<br>
+Se evalúa con la energía del equipo si la capturas; si no, con la planeada.
+</div>
+</div>
+
+<p class="note">Parámetros según el autor de la tabla Liplaser: lipólisis 30–50 J/cm²; endolifting 5–10 J/cm² a 1–2 W con ciclo al 50 %; límite de seguridad 3–5 kJ por 100 cm² de piel. La tabla no distingue entre 980 y 1470 nm, así que se aplican los mismos rangos a ambas. La potencia para lipólisis no viene en la tabla: captura la de tu protocolo.</p>
+</main>
+
+<script>
+const ZONES={
+ cara:["ZSO der","ZSO izq","ZMM der","ZMM izq","ZNL der","ZNL izq","ZPM der","ZPM izq","Submentoniana","Cuello"],
+ corp:["Abdomen superior","Abdomen inferior","Flanco der","Flanco izq","Brazo der","Brazo izq","Muslo interno der","Muslo interno izq","Rodilla der","Rodilla izq","Espalda / bra-roll"],
+ pubis:["Monte de Venus","Labio mayor der","Labio mayor izq"]
+};
+const MODE={lipo:{min:30,max:50,def:40,w:"",dc:"1"},endo:{min:5,max:10,def:8,w:2,dc:"0.5"}};
+const S={reg:"cara",mode:"endo",wl:"980"},IN={},ST={};
+const $=id=>document.getElementById(id);
+const fmt=s=>{s=Math.round(s);return s>=60?Math.floor(s/60)+" min "+(s%60)+" s":s+" s"};
+const n1=x=>(Math.round(x*10)/10).toLocaleString("es-MX");
+function parseLA(v){v=(v||"").replace(/,/g,".").toLowerCase().replace(/\s/g,"");if(v.includes("x")){const[a,b]=v.split("x").map(Number);return{area:(a||0)*(b||0),L:a||0,A:b||0}}return{area:Number(v)||0}}
+function seg(id,k){$(id).querySelectorAll("button").forEach(b=>{b.classList.toggle("on",b.dataset.v===S[k]);b.onclick=()=>{keep();S[k]=b.dataset.v;load()}})}
+function keep(){ST[S.mode]={j:$("jcm").value,w:$("w").value,dc:$("dc").value}}
+function load(){
+ seg("segReg","reg");seg("segMode","mode");seg("segWl","wl");
+ const m=MODE[S.mode],st=ST[S.mode]||{},r=$("jcm");
+ r.min=m.min;r.max=m.max;r.value=st.j||m.def;$("w").value=st.w!==undefined?st.w:m.w;$("dc").value=st.dc||m.dc;
+ $("rng").textContent=S.mode==="lipo"?"Rango del autor: 30–50 J/cm²":"Rango del autor: 5–10 J/cm², 1–2 W al 50 %";
+ $("zones").innerHTML=ZONES[S.reg].map((z,i)=>{const k=S.reg+i,d=IN[k]||{};return`<div class="zone"><div class="zh"><span class="dot" id="d${i}"></span>${z}</div>
+ <div class="zi"><div><label>cm² o L×A</label><input inputmode="decimal" data-k="${k}" data-f="a" placeholder="0" value="${d.a||""}"></div>
+ <div><label>J del equipo (opcional)</label><input type="number" min="0" step="1" data-k="${k}" data-f="e" placeholder="—" value="${d.e||""}"></div>
+ <div><label>Vectores</label><input type="number" min="1" step="1" data-k="${k}" data-f="v" placeholder="auto" value="${d.v||""}"></div>
+ <div><label>Long. vector (cm)</label><input type="number" min="0.5" step="0.5" data-k="${k}" data-f="l" placeholder="auto" value="${d.l||""}"></div></div>
+ <div class="zo" id="o${i}"></div></div>`}).join("");
+ $("zones").querySelectorAll("input").forEach(el=>el.oninput=()=>{const k=el.dataset.k;IN[k]=IN[k]||{};IN[k][el.dataset.f]=el.value;calc()});
+ calc();
+}
+function calc(){
+ const j=+$("jcm").value,w=+$("w").value||0,dc=+$("dc").value,pr=w*dc,vel=+$("vel").value||0,sep=+$("sep").value||1;
+ $("jcmO").textContent=j;
+ $("preal").textContent=pr>0?`Potencia real en tejido: ${n1(pr)} W`:"Captura la potencia para calcular tiempos y pases.";
+ let TJ=0,TT=0;
+ ZONES[S.reg].forEach((z,i)=>{
+  const k=S.reg+i,d=IN[k]||{},o=$("o"+i),dot=$("d"+i),pa=parseLA(d.a);
+  dot.className="dot";
+  if(!pa.area){o.innerHTML="";return}
+  const E=pa.area*j,T=pr>0?E/pr:0;TJ+=E;TT+=T;
+  const real=+d.e||0,ev=real||E,kj=ev/pa.area/10,c=kj>5?"r":kj>=3?"y":"g";
+  const lim=pa.area*50;
+  dot.className="dot "+c;
+  let nv=+d.v||0,L=+d.l||0,auto=[];
+  if(!nv){nv=pa.A?Math.max(1,Math.round(pa.A/sep)):Math.max(1,Math.round(Math.sqrt(pa.area)/sep));auto.push("vectores")}
+  if(!L){L=pa.L||Math.round(Math.sqrt(pa.area)*10)/10;auto.push("longitud")}
+  const Tv=T/nv,tPase=vel>0?L/vel:0,pases=tPase>0?Tv/tPase:0;
+  o.innerHTML=`Planeado <b>${Math.round(E).toLocaleString("es-MX")} J</b>${pr>0?" · "+fmt(T):""} · tope seguro ${Math.round(lim).toLocaleString("es-MX")} J<br>
+  <span class="tag ${c}">${n1(kj)} kJ/100 cm²${real?" (equipo)":" (planeado)"}</span>${real>lim?`<span class="tag r">Excede por ${Math.round(real-lim).toLocaleString("es-MX")} J</span>`:""}<br>
+  ${nv} vectores × ${n1(L)} cm · ${n1(E/nv)} J por vector${pr>0?` · ${fmt(Tv)} por vector · <b>${n1(pases)} pases/vector</b>`:""}${auto.length?` <span style="color:var(--tx3)">(auto: ${auto.join(" y ")})</span>`:""}`;
+ });
+ $("tJ").textContent=Math.round(TJ).toLocaleString("es-MX")+" J";$("tT").textContent=pr>0?fmt(TT):"—";
+}
+["jcm","w","vel","sep"].forEach(id=>$(id).addEventListener("input",calc));$("dc").addEventListener("change",calc);
+load();
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+</script>
+</body>
+</html>
