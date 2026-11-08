@@ -142,7 +142,7 @@ function calc(){
 }
 ["jcm","w","vel","sep"].forEach(id=>$(id).addEventListener("input",calc));$("dc").addEventListener("change",calc);
 load();
-if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js").catch(()=>{})}
+if("serviceWorker" in navigator){navigator.serviceWorker.register("sw.js",{updateViaCache:"none"}).then(r=>r.update()).catch(()=>{});let rl=false;navigator.serviceWorker.addEventListener("controllerchange",()=>{if(!rl){rl=true;location.reload()}})}
 </script>
 </body>
 </html>
